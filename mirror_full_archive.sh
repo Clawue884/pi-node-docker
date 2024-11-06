@@ -2,7 +2,7 @@
 set -e
 
 # Define the archive URL
-archive="https://history.testnet2.minepi.com/"
+archive="http://34.95.11.164:31403/"
 
 # Print start message
 echo "Running stellar-archivist mirror process from ${archive}"
