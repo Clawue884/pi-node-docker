@@ -36,6 +36,9 @@ ADD horizon_complete_reingest.sh /
 RUN ["chmod", "+x", "/mirror_full_archive.sh"]
 RUN ["chmod", "+x", "/horizon_complete_reingest.sh"]
 
+ADD migrations /migrations
+RUN chmod +x /migrations/*.sh
+
 ADD start /
 RUN ["chmod", "+x", "start"]
 
