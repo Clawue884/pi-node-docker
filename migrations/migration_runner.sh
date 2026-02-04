@@ -4,8 +4,8 @@
 # Migration Runner Script
 #
 # Purpose: Execute database/configuration migrations in a containerized environment
-# Location: /migration_runner.sh (in container)
-# Tracker: /migrations/migration_status
+# Location: /migrations/migration_runner.sh (in container)
+# Tracker: /opt/stellar/migration_status (persisted volume)
 #
 # Features:
 # - Executes .sh migration scripts in alphanumeric order
@@ -20,7 +20,9 @@ set -o pipefail # Return value of a pipeline is the status of the last command t
 
 # Configuration
 readonly MIGRATIONS_DIR="/migrations"
-readonly MIGRATION_STATUS_FILE="${MIGRATIONS_DIR}/migration_status"
+readonly STELLAR_HOME="/opt/stellar"
+readonly MIGRATION_STATUS_FILE="${STELLAR_HOME}/migration_status"
+readonly MIGRATION_BACKUP_BASE="${STELLAR_HOME}/migration_backups"
 readonly LOG_PREFIX="[MIGRATION]"
 
 ################################################################################
@@ -93,7 +95,7 @@ mark_migration_executed() {
 create_backup_dir() {
     local timestamp
     timestamp=$(date '+%Y%m%d_%H%M%S')
-    readonly BACKUP_DIR="${MIGRATIONS_DIR}/backups/${timestamp}"
+    readonly BACKUP_DIR="${MIGRATION_BACKUP_BASE}/${timestamp}"
 
     if [[ ! -d "${BACKUP_DIR}" ]]; then
         mkdir -p "${BACKUP_DIR}"
@@ -166,7 +168,7 @@ main() {
 
     # Process each migration file
     while IFS= read -r migration_file; do
-        ((total_count++))
+        ((total_count++)) || true
 
         local migration_name
         migration_name=$(basename "${migration_file}")
@@ -174,11 +176,11 @@ main() {
         # Check if migration has already been executed
         if is_migration_executed "${migration_name}"; then
             log SKIP "Migration already executed: ${migration_name}"
-            ((skipped_count++))
+            ((skipped_count++)) || true
         else
             # Execute the migration
             execute_migration "${migration_file}"
-            ((executed_count++))
+            ((executed_count++)) || true
         fi
     done <<< "${migration_files}"
 

@@ -66,9 +66,11 @@ Default configurations are copied to the data directory on first launch:
 │       ├── postgresql.conf     # PostgreSQL configuration
 │       ├── pg_hba.conf         # PostgreSQL client authentication
 │       └── pg_ident.conf       # PostgreSQL user mapping
-└── supervisor
-    └── etc
-        └── supervisord.conf    # Supervisord configuration
+├── supervisor
+│   └── etc
+│       └── supervisord.conf    # Supervisord configuration
+├── migration_status            # Tracks executed migrations (auto-created)
+└── migration_backups/          # Backup files from migrations (auto-created)
 ```
 
 Stop the container before editing configuration files, then restart after changes.
@@ -78,19 +80,19 @@ Stop the container before editing configuration files, then restart after change
 
 ## Command Line Options
 
-| Option | Description |
-|--------|-------------|
-| `--mainnet` | Connect to Pi Network mainnet |
-| `--testnet` | Connect to Pi Testnet |
-| `--testnet2` | Connect to Pi Testnet2 |
+| Option                     | Description                               |
+|----------------------------|-------------------------------------------|
+| `--mainnet`                | Connect to Pi Network mainnet             |
+| `--testnet`                | Connect to Pi Testnet                     |
+| `--testnet2`               | Connect to Pi Testnet2                    |
 | `--enable-auto-migrations` | Run database/config migrations on startup |
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `POSTGRES_PASSWORD` | Set PostgreSQL password (avoids interactive prompt) |
-| `NODE_PRIVATE_KEY` | Set the node's private key (secret seed). Optional - auto-generated if not provided |
+| Variable            | Description                                                                         |
+|---------------------|-------------------------------------------------------------------------------------|
+| `POSTGRES_PASSWORD` | Set PostgreSQL password (avoids interactive prompt)                                 |
+| `NODE_PRIVATE_KEY`  | Set the node's private key (secret seed). Optional - auto-generated if not provided |
 
 ## Migrations
 
@@ -100,10 +102,10 @@ The container includes migration scripts that update database schemas, modify de
 
 - Migration scripts are located in `/migrations/` inside the container
 - Scripts execute in alphanumeric order (e.g., `001_*.sh`, `002_*.sh`, ...)
-- Each script runs only once - completed migrations are tracked in `/migrations/migration_status`
+- Each script runs only once - completed migrations are tracked in `/opt/stellar/migration_status`
 - If a migration fails, the container stops immediately (fail-fast)
 - Failed migrations will re-run on next startup
-- Backups are created in `/migrations/backups/` before changes
+- Backups are created in `/opt/stellar/migration_backups/` before changes
 
 ### Enabling Migrations
 

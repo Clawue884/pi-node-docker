@@ -18,7 +18,7 @@ set -euo pipefail
 # ==============================================================================
 
 CFG="/opt/stellar/core/etc/stellar-core.cfg"
-BACKUP_DIR="${MIGRATION_BACKUP_DIR:-/migrations/backups}"
+BACKUP_DIR="${MIGRATION_BACKUP_DIR:-/opt/stellar/migration_backups}"
 
 # ==============================================================================
 # Helpers
@@ -38,59 +38,74 @@ log "Starting migration: Update validator3"
 # Check config exists
 [[ -f "$CFG" ]] || die "Config file not found: $CFG"
 
-# Create backup
-mkdir -p "$BACKUP_DIR"
-BACKUP="$BACKUP_DIR/stellar-core.cfg.$(date +%Y%m%d_%H%M%S)"
-cp "$CFG" "$BACKUP"
-log "Backup created: $BACKUP"
-
-# ------------------------------------------------------------------------------
-# Step 1: Update validator3 section
-# ------------------------------------------------------------------------------
-
-if grep -qF 'NAME="doesnotexistyet"' "$CFG"; then
-    log "Updating validator3 section..."
-    sed -i \
-        -e 's/NAME="doesnotexistyet"/NAME="validator3"/' \
-        -e 's/PUBLIC_KEY="GDKG2ZYQHSALQCXYQXAWVTT5IRFCDU2R5Q2TSH4GIJC6W2XZ5L3IG2OV"/PUBLIC_KEY="GC2WFHQRXLCCYRGVH3IUB5GN5W7RX73Z3E7DIKNI5XSF2M5DCLLT3GYQ"/' \
-        -e 's/ADDRESS="127\.0\.0\.1:31502"/ADDRESS="34.64.104.0:31402"/' \
-        -e 's|HISTORY="curl -sf http://127\.0\.0\.1:31503/|HISTORY="curl -sf https://history.mainnet.minepi.com/|' \
-        "$CFG"
-    ok "Validator3 section updated"
+# Check if running on mainnet (handle both with and without spaces around =)
+IS_MAINNET=false
+if grep -qE 'NETWORK_PASSPHRASE\s*=\s*"Pi Network"' "$CFG"; then
+    IS_MAINNET=true
+    log "Running on mainnet (Pi Network)"
 else
-    log "Validator3 section already updated (skipped)"
+    log "Not running on mainnet - skipping stellar-core config changes"
 fi
 
-# ------------------------------------------------------------------------------
-# Step 2: Add validator3 to PREFERRED_PEER_KEYS
-# ------------------------------------------------------------------------------
+# ==============================================================================
+# Mainnet-only changes (stellar-core config)
+# ==============================================================================
 
-if ! grep -qF '"$validator3"' "$CFG"; then
-    log "Adding validator3 to PREFERRED_PEER_KEYS..."
-    sed -i 's/\(\$validator2",\)$/\1\n    "\$validator3"/' "$CFG"
-    ok "Validator3 added to PREFERRED_PEER_KEYS"
-else
-    log "Validator3 already in PREFERRED_PEER_KEYS (skipped)"
-fi
+if [[ "$IS_MAINNET" == "true" ]]; then
+    # Create backup
+    mkdir -p "$BACKUP_DIR"
+    BACKUP="$BACKUP_DIR/stellar-core.cfg.$(date +%Y%m%d_%H%M%S)"
+    cp "$CFG" "$BACKUP"
+    log "Backup created: $BACKUP"
 
-# ------------------------------------------------------------------------------
-# Step 3: Update HISTORY URLs to CDN
-# ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
+    # Step 1: Update validator3 section
+    # --------------------------------------------------------------------------
 
-if grep -qF 'http://34.95.11.164:31403/' "$CFG"; then
-    log "Updating validator1 HISTORY to CDN..."
-    sed -i 's|http://34\.95\.11\.164:31403/|https://history.mainnet.minepi.com/|g' "$CFG"
-    ok "Validator1 HISTORY updated"
-else
-    log "Validator1 HISTORY already uses CDN (skipped)"
-fi
+    if grep -qF 'NAME="doesnotexistyet"' "$CFG"; then
+        log "Updating validator3 section..."
+        sed -i \
+            -e 's/NAME="doesnotexistyet"/NAME="validator3"/' \
+            -e 's/PUBLIC_KEY="GDKG2ZYQHSALQCXYQXAWVTT5IRFCDU2R5Q2TSH4GIJC6W2XZ5L3IG2OV"/PUBLIC_KEY="GC2WFHQRXLCCYRGVH3IUB5GN5W7RX73Z3E7DIKNI5XSF2M5DCLLT3GYQ"/' \
+            -e 's/ADDRESS="127\.0\.0\.1:31502"/ADDRESS="34.64.104.0:31402"/' \
+            -e 's|HISTORY="curl -sf http://127\.0\.0\.1:31503/|HISTORY="curl -sf https://history.mainnet.minepi.com/|' \
+            "$CFG"
+        ok "Validator3 section updated"
+    else
+        log "Validator3 section already updated (skipped)"
+    fi
 
-if grep -qF 'http://34.88.93.19:31403/' "$CFG"; then
-    log "Updating validator2 HISTORY to CDN..."
-    sed -i 's|http://34\.88\.93\.19:31403/|https://history.mainnet.minepi.com/|g' "$CFG"
-    ok "Validator2 HISTORY updated"
-else
-    log "Validator2 HISTORY already uses CDN (skipped)"
+    # --------------------------------------------------------------------------
+    # Step 2: Add validator3 to PREFERRED_PEER_KEYS
+    # --------------------------------------------------------------------------
+
+    if ! grep -qF '"$validator3"' "$CFG"; then
+        log "Adding validator3 to PREFERRED_PEER_KEYS..."
+        sed -i 's/\(\$validator2",\)$/\1\n    "\$validator3"/' "$CFG"
+        ok "Validator3 added to PREFERRED_PEER_KEYS"
+    else
+        log "Validator3 already in PREFERRED_PEER_KEYS (skipped)"
+    fi
+
+    # --------------------------------------------------------------------------
+    # Step 3: Update HISTORY URLs to CDN
+    # --------------------------------------------------------------------------
+
+    if grep -qF 'http://34.95.11.164:31403/' "$CFG"; then
+        log "Updating validator1 HISTORY to CDN..."
+        sed -i 's|http://34\.95\.11\.164:31403/|https://history.mainnet.minepi.com/|g' "$CFG"
+        ok "Validator1 HISTORY updated"
+    else
+        log "Validator1 HISTORY already uses CDN (skipped)"
+    fi
+
+    if grep -qF 'http://34.88.93.19:31403/' "$CFG"; then
+        log "Updating validator2 HISTORY to CDN..."
+        sed -i 's|http://34\.88\.93\.19:31403/|https://history.mainnet.minepi.com/|g' "$CFG"
+        ok "Validator2 HISTORY updated"
+    else
+        log "Validator2 HISTORY already uses CDN (skipped)"
+    fi
 fi
 
 # ------------------------------------------------------------------------------
@@ -105,29 +120,36 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# Step 5: Restart services
+# Step 5: Restart services (only if supervisor is running)
 # ------------------------------------------------------------------------------
 
-log "Reloading supervisor configuration..."
-supervisorctl reread
-supervisorctl update
-
-log "Restarting services..."
-supervisorctl restart stellar-core horizon || die "Failed to restart services"
-ok "Services restarted"
-
-# ------------------------------------------------------------------------------
-# Verification
-# ------------------------------------------------------------------------------
-
-log "Verifying changes..."
-
-if ! grep -qF 'NAME="validator3"' "$CFG"; then
-    die "Verification failed: validator3 NAME not found"
+# Restart services only if supervisor is running AND we made mainnet changes
+if [[ "$IS_MAINNET" == "true" ]] && supervisorctl status &>/dev/null; then
+    log "Supervisor is running, restarting services..."
+    supervisorctl reread
+    supervisorctl update
+    supervisorctl restart stellar-core horizon || die "Failed to restart services"
+    ok "Services restarted"
+else
+    log "Supervisor not running or no config changes, skipping restart"
 fi
 
-if ! grep -qF '"$validator3"' "$CFG"; then
-    die "Verification failed: validator3 not in PREFERRED_PEER_KEYS"
+# ------------------------------------------------------------------------------
+# Verification (mainnet only)
+# ------------------------------------------------------------------------------
+
+if [[ "$IS_MAINNET" == "true" ]]; then
+    log "Verifying mainnet config changes..."
+
+    if ! grep -qF 'NAME="validator3"' "$CFG"; then
+        die "Verification failed: validator3 NAME not found"
+    fi
+
+    if ! grep -qF '"$validator3"' "$CFG"; then
+        die "Verification failed: validator3 not in PREFERRED_PEER_KEYS"
+    fi
+
+    ok "Mainnet config verification passed"
 fi
 
 ok "Migration completed successfully"

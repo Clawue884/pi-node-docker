@@ -35,11 +35,11 @@ function main() {
 	init_horizon
 	copy_pgpass
 
+	# run migrations if enabled (postgres is still running here)
+	run_migrations
+
 	stop_postgres  # this gets started in init_db
 	start_history_server
-
-	# run migrations if enabled
-	run_migrations
 
 	# launch services
 	exec_supervisor

@@ -5,11 +5,14 @@
 ```
 /migrations/
 ├── migration_runner.sh       # Main control script
-├── migration_status          # Tracks executed migrations (auto-created)
 ├── 001_update_validator3.sh  # Update validator3 config
 ├── docs/                     # Human-readable migration guides
 │   └── 001_update_validator3.md
 └── README.md                 # This file
+
+/opt/stellar/                 # Persisted volume
+├── migration_status          # Tracks executed migrations (auto-created)
+└── migration_backups/        # Backup files from migrations
 ```
 
 ## Usage
@@ -57,7 +60,7 @@ main "$@"
 
 ## Status File
 
-`/migrations/migration_status` - auto-created, tracks executed migrations.
+`/opt/stellar/migration_status` - auto-created on persisted volume, tracks executed migrations.
 
 ```
 001_update_validator3.sh
@@ -80,15 +83,15 @@ main "$@"
 - Re-runs failed migration on next execution
 - Idempotent - safe to run multiple times
 
-- Creates backups in `/migrations/backups/YYYYMMDD_HHMMSS/`
+- Creates backups in `/opt/stellar/migration_backups/YYYYMMDD_HHMMSS/`
 
 ## Backups
 
-Each run creates timestamped backup directory. Migrations use `$MIGRATION_BACKUP_DIR`:
+Each run creates timestamped backup directory on persisted volume. Migrations use `$MIGRATION_BACKUP_DIR`:
 
 ```bash
 # In your migration
 cp "$FILE" "$MIGRATION_BACKUP_DIR/$(basename $FILE)"
 ```
 
-Backup location: `/migrations/backups/20250203_173045/`
+Backup location: `/opt/stellar/migration_backups/20250203_173045/`

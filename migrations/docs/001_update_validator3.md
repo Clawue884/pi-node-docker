@@ -1,6 +1,6 @@
 # Migration 001: Update Validator3 Configuration
 
-**Related Commit:** `fda543d2f27af6a3eb4473355f693b99eaa11908`  
+**Related Commit:** `fda543d2f27af6a3eb4473355f693b99eaa11908`
 **Automated Script:** `/migrations/001_update_validator3.sh`
 
 ---
@@ -10,12 +10,15 @@
 This migration updates your Stellar node to use the new **validator3** server.
 If you started your node from 19.6.0 image, you can skip this migration.
 
+> ⚠️ **Note:** Steps 2-4 (stellar-core config changes) apply **only to mainnet** nodes.
+> Step 5 (Horizon database migration) applies to **all networks** (mainnet, testnet, etc.).
+
 Here's what changes:
-1. **Replaces the placeholder validator** - Changes "doesnotexistyet" to the real "validator3" with correct keys and address
-2. **Adds validator3 to your trusted peers** - So your node knows to connect to it
-3. **Switches to CDN for history** - Updates validator1 and validator2 to use faster HTTPS CDN URLs
-4. **Updates Horizon database** - Runs any pending database migrations
-5. **Restarts services** - Applies all changes
+1. **Replaces the placeholder validator** - Changes "doesnotexistyet" to the real "validator3" with correct keys and address *(mainnet only)*
+2. **Adds validator3 to your trusted peers** - So your node knows to connect to it *(mainnet only)*
+3. **Switches to CDN for history** - Updates validator1 and validator2 to use faster HTTPS CDN URLs *(mainnet only)*
+4. **Updates Horizon database** - Runs any pending database migrations *(all networks)*
+5. **Restarts services** - Applies all changes *(mainnet only, if config changed)*
 
 ---
 
@@ -40,14 +43,14 @@ First, let's save the current configuration in case we need to roll back.
 
 ```bash
 # Create a timestamped backup folder
-mkdir -p /migrations/backups/$(date +%Y%m%d_%H%M%S)
+mkdir -p /opt/stellar/migration_backups/$(date +%Y%m%d_%H%M%S)
 
 # Backup the stellar-core configuration
 cp /opt/stellar/core/etc/stellar-core.cfg \
-   /migrations/backups/$(date +%Y%m%d_%H%M%S)/stellar-core.cfg
+   /opt/stellar/migration_backups/$(date +%Y%m%d_%H%M%S)/stellar-core.cfg
 
 # Confirm backup was created
-ls -lh /migrations/backups/
+ls -lh /opt/stellar/migration_backups/
 ```
 
 ✅ **You should see** your backup folder with the current timestamp.
@@ -231,10 +234,10 @@ Don't panic! You can easily roll back to your backup.
 supervisorctl stop stellar-core horizon
 
 # Find your backup (use the timestamp from Step 1)
-ls /migrations/backups/
+ls /opt/stellar/migration_backups/
 
 # Restore the backup (replace YYYYMMDD_HHMMSS with your timestamp)
-cp /migrations/backups/YYYYMMDD_HHMMSS/stellar-core.cfg \
+cp /opt/stellar/migration_backups/YYYYMMDD_HHMMSS/stellar-core.cfg \
    /opt/stellar/core/etc/stellar-core.cfg
 
 # Restart services
